@@ -1,9 +1,8 @@
 # Proyecto de visión: detección de frutas
 
-Esta carpeta es la base de la entrega de la parte 1. `main.py` es una copia
-del ejemplo oficial del starter kit: emplea umbrales de color y componentes
-conectados para producir máscaras, especies y puntuaciones. Es una demostración
-del formato, no el detector definitivo; se sustituirá en la issue #3.
+Esta carpeta contiene la configuración inicial para la parte 1. El detector y
+el punto de entrada del proyecto se desarrollarán en la issue #3; todavía no hay
+código de aplicación en esta carpeta.
 
 ## Preparación
 
@@ -32,7 +31,7 @@ Desde la raíz del repositorio, con el entorno activado:
 
 ```powershell
 New-Item -ItemType Directory -Force .scratch | Out-Null
-python team_vision/main.py detect --input fruits_part1/fruits_part1/train --output .scratch/predictions.json --device cpu
+python 'Startert Kit/example_submission/main.py' detect --input fruits_part1/fruits_part1/train --output .scratch/predictions.json --device cpu
 python 'Startert Kit/evaluate.py' --gt fruits_part1/fruits_part1/train/annotations.json --pred .scratch/predictions.json
 python 'Startert Kit/visualize.py' --images fruits_part1/fruits_part1/train/images --coco fruits_part1/fruits_part1/train/annotations.json --out .scratch/visualizaciones --limit 10
 ```
