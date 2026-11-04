@@ -1,8 +1,8 @@
 # Proyecto de visión: detección de frutas
 
-Esta carpeta contiene la configuración inicial para la parte 1. El detector y
-el punto de entrada del proyecto se desarrollarán en la issue #3; todavía no hay
-código de aplicación en esta carpeta.
+La raíz del repositorio contiene la configuración inicial para la parte 1. El
+detector y el punto de entrada se desarrollarán en la issue #3; todavía no hay
+código de aplicación del proyecto.
 
 ## Preparación
 
@@ -11,7 +11,7 @@ Se necesita Python 3.12. Desde la raíz del repositorio, en PowerShell:
 ```powershell
 py -3.12 -m venv .venv
 .\.venv\Scripts\Activate.ps1
-python -m pip install -r team_vision/requirements.txt
+python -m pip install -r requirements.txt
 ```
 
 Si la ejecución de scripts de PowerShell está deshabilitada, se puede usar
@@ -43,5 +43,6 @@ una evaluación de validación: esas tareas corresponden a las siguientes issues
 
 Antes de la entrega se debe ejecutar `check_submission.py` y completar este
 README con los miembros, el método definitivo, resultados y recursos externos.
-La carpeta de entrega no debe contener el conjunto de datos, el entorno virtual,
-las visualizaciones ni los archivos temporales.
+Para preparar la entrega, cread una carpeta con los archivos necesarios del
+proyecto. No incluyáis el conjunto de datos, el entorno virtual, las
+visualizaciones ni los archivos temporales.
