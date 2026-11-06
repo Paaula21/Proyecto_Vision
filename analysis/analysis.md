@@ -17,9 +17,15 @@ python3 analysis/make_analysis.py
 ```
 
 Dependencias: `numpy`, `pillow`, `scipy` y `matplotlib` (solo para las figuras).
+Todas están en el `requirements.txt` de la raíz:
+
+```bash
+python3 -m pip install -r requirements.txt
+```
+
 El script no descarga nada, no modifica el dataset y no necesita `pycocotools`:
 incluye un decodificador propio del RLE de COCO. Si `matplotlib` no está
-instalado:
+instalado por separado:
 
 ```bash
 python3 -m pip install matplotlib

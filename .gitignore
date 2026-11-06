@@ -2,3 +2,13 @@
 __pycache__/
 *.py[cod]
 .scratch/
+
+# Dataset: las imágenes se descargan del Campus Virtual y se quedan en local.
+fruits_part1/**/images/
+fruits_part1/**/*.zip
+
+# Salidas generadas del split: se regeneran con splits/make_split.py y se
+# quedan en local para no ensuciar el repositorio ni pisar cambios al hacer pull.
+splits/fold_*/
+splits/folds.json
+splits/checks.json
