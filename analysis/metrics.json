@@ -1,6 +1,6 @@
 {
   "dataset": {
-    "path": "fruits_part1/fruits_part1/train",
+    "path": "fruits_part1\\train",
     "images": 200,
     "width": 1280,
     "height": 960,
