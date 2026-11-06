@@ -4,7 +4,7 @@
 Uso (desde la raíz del repositorio):
 
     python splits/make_split.py
-    python splits/make_split.py --data fruits_part1/fruits_part1/train --out splits
+    python splits/make_split.py --data fruits_part1/train --out splits
 
 El script:
 1. Construye el grafo imagen-fruta-imagen usando `fruit_id`.
@@ -72,7 +72,7 @@ def write_ids(path: Path, ids: list[int]) -> None:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("--data", type=Path, default=Path("fruits_part1/fruits_part1/train"),
+    ap.add_argument("--data", type=Path, default=Path("fruits_part1/train"),
                     help="carpeta con annotations.json e images.json")
     ap.add_argument("--out", type=Path, default=Path("splits"))
     args = ap.parse_args()

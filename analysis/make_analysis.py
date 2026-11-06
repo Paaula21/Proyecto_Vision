@@ -4,7 +4,7 @@
 Uso (desde la raíz del repositorio):
 
     python analysis/make_analysis.py
-    python analysis/make_analysis.py --data fruits_part1/fruits_part1/train --out analysis
+    python analysis/make_analysis.py --data fruits_part1/train --out analysis
 
 Escribe:
     analysis/metrics.json
@@ -202,7 +202,7 @@ def montage(panels: list[Image.Image], cols: int, pad: int = 8,
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("--data", type=Path, default=Path("fruits_part1/fruits_part1/train"),
+    ap.add_argument("--data", type=Path, default=Path("fruits_part1/train"),
                     help="carpeta con images/, annotations.json e images.json")
     ap.add_argument("--out", type=Path, default=Path("analysis"))
     ap.add_argument("--no-figures", action="store_true")
