@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 .scratch/
+.artifacts/
 
 # Dataset: las imágenes se descargan del Campus Virtual y se quedan en local.
 fruits_part1/**/images/
