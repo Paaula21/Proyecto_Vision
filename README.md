@@ -55,3 +55,26 @@ La carpeta indicada en `--output` debe ser nueva. Para otra prueba, cambia su no
 # Información relevante
 ## Época
 Una época significa que el entrenamiento ha recorrido una vez todas las imágenes de entrenamiento del fold.
+
+## Evaluación del detector
+
+Después de tener los pesos locales, el detector se puede evaluar con las
+imágenes de entrenamiento y validación del fold. El script ejecuta inferencia
+una sola vez, aplica el evaluador oficial a ambos conjuntos, clasifica errores
+y genera visualizaciones de predicciones y anotaciones reales:
+
+```bash
+python analysis/evaluate_detector.py \
+  --fold 0 \
+  --data fruits_part1/train \
+  --splits splits \
+  --weights .artifacts/inference/detector.pth \
+  --output .artifacts/evaluation/fold_0 \
+  --device cpu
+```
+
+El resultado queda en `.artifacts/evaluation/fold_0/`, que está excluido de
+Git. `report.md` compara entrenamiento y validación; la métrica principal para
+valorar si se encuentran frutas es `AP_agnostic`, porque en cada fold la
+especie del árbol de validación queda fuera del entrenamiento. La evaluación es
+de solo lectura y no modifica los pesos.
