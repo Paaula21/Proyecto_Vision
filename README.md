@@ -53,18 +53,9 @@ python train.py --data fruits_part1/train --splits splits --fold 0 --output .scr
 Se usa 1 época ya que el proceso es muy largo, pero se deben usar más.
 La carpeta indicada en `--output` debe ser nueva. Para otra prueba, cambia su nombre; si dispones de una GPU CUDA, puedes cambiar `--device cpu` por `--device cuda`.
 
-Para entrenar el modelo final con las 200 imágenes y las cuatro especies durante 10 épocas en CUDA, sin separar un fold de validación:
-
-```bash
-python train.py --data fruits_part1/train --all-data --output .artifacts/training/final_10ep --device cuda --epochs 10
-python main.py detect --input fruits_part1/train --output .artifacts/training/final_10ep/predictions.json --weights .artifacts/training/final_10ep/detector.pth --device cuda
-```
-
-La primera ejecución del entrenamiento puede descargar los pesos iniciales de Mask R-CNN. Las predicciones de este ejemplo corresponden a las imágenes de entrenamiento.
-
 # Información relevante
 ## Época
-Una época significa que el entrenamiento ha recorrido una vez todas las imágenes seleccionadas.
+Una época significa que el entrenamiento ha recorrido una vez todas las imágenes de entrenamiento del fold.
 
 ## Evaluación del detector
 
