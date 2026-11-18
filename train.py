@@ -1,4 +1,4 @@
-"""Entrena el detector inicial con un fold generado por splits/make_split.py."""
+"""Entrena el detector con un fold o con todas las imágenes disponibles."""
 
 import argparse
 import json
@@ -10,7 +10,7 @@ import torch
 import torchvision
 from torch.utils.data import DataLoader
 
-from src.dataset import FruitDataset, collate_fn, load_split
+from src.dataset import FruitDataset, collate_fn, load_split, sha256
 from src.model import create_model
 
 
@@ -23,9 +23,11 @@ def main():
         Numero de épocas
     """
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--data", type=Path, required=True, help="Carpeta train con images/ y annotations.json")
+    parser.add_argument("--data", type=Path, required=True, help="Carpeta train con images/, images.json y annotations.json")
     parser.add_argument("--splits", type=Path, default=Path("splits"), help="Carpeta con los folds generados")
-    parser.add_argument("--fold", type=int, default=0)
+    split_selection = parser.add_mutually_exclusive_group()
+    split_selection.add_argument("--fold", type=int, default=0)
+    split_selection.add_argument("--all-data", action="store_true", help="Entrena con todas las imágenes, sin validación")
     parser.add_argument("--output", type=Path, required=True, help="Directorio nuevo para pesos y configuración")
     parser.add_argument("--device", choices=["cpu", "cuda"], default="cpu")
     parser.add_argument("--epochs", type=int, default=10)
@@ -40,8 +42,21 @@ def main():
     if args.output.exists():
         parser.error("--output debe ser un directorio nuevo para no sobrescribir experimentos")
 
-    "Comprobamos el split"
-    train_ids, val_ids, fold_info, annotations_hash = load_split(args.data, args.splits, args.fold)
+    if args.all_data:
+        annotations_path = args.data / "annotations.json"
+        annotations = json.loads(annotations_path.read_text(encoding="utf-8"))
+        train_ids = sorted(image["id"] for image in annotations["images"])
+        input_images = json.loads((args.data / "images.json").read_text(encoding="utf-8"))["images"]
+        if (not train_ids or len(train_ids) != len(set(train_ids))
+                or len(input_images) != len(train_ids)
+                or {image["id"] for image in input_images} != set(train_ids)):
+            parser.error("annotations.json e images.json deben contener las mismas imágenes, sin IDs duplicados")
+        val_ids = []
+        fold_info = {"val_species": None}
+        annotations_hash = sha256(annotations_path)
+    else:
+        "Comprobamos el split"
+        train_ids, val_ids, fold_info, annotations_hash = load_split(args.data, args.splits, args.fold)
     random.seed(args.seed)
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
@@ -60,7 +75,7 @@ def main():
         "architecture": "maskrcnn_resnet50_fpn",
         "initial_weights": "MaskRCNN_ResNet50_FPN_Weights.DEFAULT",
         "categories": {"0": "background", "1": "orange", "2": "apple", "3": "pear", "4": "lemon"},
-        "fold": args.fold,
+        "fold": None if args.all_data else args.fold,
         "validation_species": fold_info["val_species"],
         "train_ids": train_ids,
         "val_ids": val_ids,
