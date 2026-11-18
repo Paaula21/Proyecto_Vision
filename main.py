@@ -22,6 +22,8 @@ DEFAULT_WEIGHTS = Path(".artifacts/inference/detector.pth")
 def load_detector(weights, device):
     """Carga un checkpoint local en la definición compartida del detector."""
     weights = Path(weights)
+    if not weights.is_file():
+        raise FileNotFoundError(f"No se encuentran los pesos del detector: {weights}")
     configuration_path = weights.with_name("config.json")
     configuration = json.loads(configuration_path.read_text(encoding="utf-8"))
     if configuration.get("categories") != EXPECTED_CATEGORIES:
@@ -76,7 +78,7 @@ def coco_rle(mask):
     return {"size": list(mask.shape), "counts": "".join(encoded)}
 
 
-def write_predictions(input_dir, output_path, detector):
+def write_predictions(input_dir, output_path, detector, device="cpu"):
     """Ejecuta el detector para todas las imágenes del contrato oficial."""
     images = json.loads((input_dir / "images.json").read_text(encoding="utf-8"))["images"]
     try:
@@ -88,7 +90,8 @@ def write_predictions(input_dir, output_path, detector):
     predictions = []
     with context:
         for image in images:
-            outputs = detector([image_to_tensor(input_dir / "images" / image["file_name"])])[0]
+            image_tensor = image_to_tensor(input_dir / "images" / image["file_name"]).to(device)
+            outputs = detector([image_tensor])[0]
             masks = outputs["masks"].detach().cpu().numpy()[:, 0] >= 0.5
             labels = outputs["labels"].detach().cpu().numpy()
             scores = outputs["scores"].detach().cpu().numpy()
@@ -133,7 +136,7 @@ def main(argv=None):
 
             if not torch.cuda.is_available():
                 parser.error("Se solicitó CUDA, pero no hay una GPU CUDA disponible")
-        write_predictions(args.input, args.output, load_detector(args.weights, args.device))
+        write_predictions(args.input, args.output, load_detector(args.weights, args.device), args.device)
 
 
 if __name__ == "__main__":
