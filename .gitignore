@@ -4,8 +4,9 @@ __pycache__/
 .scratch/
 .artifacts/
 
-# Dataset: las imágenes se descargan del Campus Virtual y se quedan en local.
+# Las imágenes de entrenamiento se versionan; otros conjuntos quedan locales.
 fruits_part1/**/images/
+!fruits_part1/train/images/
 fruits_part1/**/*.zip
 
 # Salidas generadas del split: se regeneran con splits/make_split.py y se

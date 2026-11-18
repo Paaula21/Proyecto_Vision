@@ -1,6 +1,7 @@
 # Preparación del entorno
 
 Instala Python 3.12 y ejecuta los comandos correspondientes desde la raíz del proyecto.
+El repositorio incluye las 200 imágenes de entrenamiento en `fruits_part1/train/images/`.
 
 ## Windows (PowerShell)
 
