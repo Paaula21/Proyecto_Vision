@@ -3,6 +3,8 @@
 import argparse
 import json
 import random
+import time
+from collections import defaultdict
 from pathlib import Path
 
 import numpy as np
@@ -87,10 +89,18 @@ def main():
     (args.output / "config.json").write_text(
         json.dumps(config, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
     )
+    history = {"device": args.device, "epochs": []}
+    if device.type == "cuda":
+        torch.cuda.synchronize(device)
+    training_started = time.perf_counter()
     "Entrena durante el número de épocas indicado"
     for epoch in range(1, args.epochs + 1):
+        if device.type == "cuda":
+            torch.cuda.reset_peak_memory_stats(device)
+        epoch_started = time.perf_counter()
         model.train()
         total_loss = 0.0
+        component_totals = defaultdict(float)
         for image_number, (images, targets) in enumerate(loader, start=1):
             images = [image.to(device) for image in images]
             targets = [{key: value.to(device) for key, value in target.items()} for target in targets]
@@ -103,6 +113,8 @@ def main():
             loss.backward()
             optimizer.step()
             total_loss += loss.item()
+            for name, component in losses.items():
+                component_totals[name] += component.detach().item()
             if image_number % 10 == 0 or image_number == len(loader):
                 print(
                     f"Época {epoch}/{args.epochs} | Imagen {image_number}/{len(loader)} | "
@@ -114,6 +126,26 @@ def main():
             {"model_state_dict": model.state_dict(), "epoch": epoch, "config": config},
             args.output / "detector.pth",
         )
+        if device.type == "cuda":
+            torch.cuda.synchronize(device)
+        epoch_finished = time.perf_counter()
+        record = {
+            "epoch": epoch,
+            "batches": len(loader),
+            "loss": total_loss / len(loader),
+            "loss_components": {name: value / len(loader) for name, value in component_totals.items()},
+            "learning_rate": optimizer.param_groups[0]["lr"],
+            "duration_seconds": epoch_finished - epoch_started,
+            "cuda_peak_allocated_bytes": torch.cuda.max_memory_allocated(device) if device.type == "cuda" else None,
+            "cuda_peak_reserved_bytes": torch.cuda.max_memory_reserved(device) if device.type == "cuda" else None,
+        }
+        history["epochs"].append(record)
+        history["elapsed_seconds"] = epoch_finished - training_started
+        (args.output / "training_history.json").write_text(
+            json.dumps(history, indent=2, allow_nan=False) + "\n", encoding="utf-8"
+        )
+        components = " | ".join(f"{name}: {value:.4f}" for name, value in record["loss_components"].items())
+        print(f"Época {epoch} | {record['duration_seconds']:.1f} s | {components}", flush=True)
     print(f"Pesos guardados en: {args.output / 'detector.pth'}")
 
 
