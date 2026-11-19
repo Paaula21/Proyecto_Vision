@@ -33,7 +33,7 @@ Hasta ahora hemos preparado tres archivos:
 
 El código incluye las anotaciones marcadas como `iscrowd` durante el entrenamiento. Son frutas muy pequeñas que el evaluador ignora. Es una decisión inicial que tendremos que revisar cuando podamos medir los resultados.
 
-Todavía no tenemos unos pesos entrenados y evaluados, así que no podemos afirmar que el modelo funcione bien ni que sea mejor que otras opciones.
+Ya hay un checkpoint entrenado durante 10 épocas y evaluado en el fold 0. Sus pesos están en `.artifacts/training/fold_0_10ep/`; la configuración, las métricas y el informe también están versionados en `analysis/results/fold_0_10ep/`. En las 50 imágenes de validación, `AP_agnostic` es 0,2455 y el AP por especie es 0,0000: la especie validada (manzana) no aparece en el entrenamiento de este fold. Es un resultado inicial de detección; todavía falta evaluar los demás folds y comparar con otras técnicas.
 
 ## Comparación con otras técnicas
 
@@ -52,4 +52,4 @@ Muchas frutas son pequeñas o están parcialmente tapadas por hojas. Esto puede 
 
 Además, cada división deja fuera un árbol y, con él, una especie completa. Por eso tendremos que explicar con cuidado qué podemos medir con esa validación. Sirve para estudiar la detección en un árbol que no se ha usado en ese entrenamiento, pero no para comprobar normalmente el reconocimiento de una especie que ha quedado fuera.
 
-El siguiente paso es completar una prueba de entrenamiento, generar predicciones y evaluarlas. También será útil compararlas con un método más sencillo para ver si el modelo aporta una mejora.
+El siguiente paso es evaluar los demás folds. También será útil comparar estos resultados con un método más sencillo para ver si el modelo aporta una mejora.

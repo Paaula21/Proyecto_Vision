@@ -79,3 +79,32 @@ Git. `report.md` compara entrenamiento y validación; la métrica principal para
 valorar si se encuentran frutas es `AP_agnostic`, porque en cada fold la
 especie del árbol de validación queda fuera del entrenamiento. La evaluación es
 de solo lectura y no modifica los pesos.
+
+## Resultado disponible: fold 0, 10 épocas
+
+Los artefactos locales del entrenamiento están en
+`.artifacts/training/fold_0_10ep/`: `detector.pth`, su `config.json` y las
+`predictions.json` de las 200 imágenes. Las métricas, el informe, los errores y
+las visualizaciones están en `.artifacts/evaluation/fold_0_10ep/`. Ambos
+directorios están excluidos de Git. Una copia de las métricas, la configuración,
+el informe y el diagnóstico de errores está versionada en
+`analysis/results/fold_0_10ep/` para poder revisar el resultado en GitHub.
+
+| Métrica | Entrenamiento (150 imágenes) | Validación (50 imágenes) |
+|---|---:|---:|
+| AP | 0,1422 | 0,0000 |
+| AP50 | 0,3230 | 0,0000 |
+| AP75 | 0,1101 | 0,0000 |
+| AP_agnostic | 0,1607 | 0,2455 |
+
+La validación contiene manzanas, una especie ausente del entrenamiento de este
+fold. Por ello, el AP de clasificación es 0 y `AP_agnostic` describe mejor la
+detección de frutas. Estos resultados corresponden solo al fold 0 y no son una
+estimación del rendimiento en todas las especies. La configuración completa y
+los valores sin redondear están en los archivos JSON de
+`analysis/results/fold_0_10ep/`.
+
+Para generar nuevas predicciones con este checkpoint, indica explícitamente
+`--weights .artifacts/training/fold_0_10ep/detector.pth` a `main.py detect`.
+Las predicciones incluidas se generaron con la corrección de RLE de la PR #24,
+ya integrada en `main`.

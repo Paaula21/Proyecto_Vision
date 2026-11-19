@@ -1,0 +1,42 @@
+{
+  "train": {
+    "metrics": {
+      "AP": 0.14217976991710782,
+      "AP50": 0.3230067229106285,
+      "AP75": 0.1101286734295083,
+      "AP_orange": 0.20091662446035194,
+      "AP_apple": NaN,
+      "AP_pear": 0.10735635098759899,
+      "AP_lemon": 0.11826633430337251,
+      "AP_agnostic": 0.16074622944917158,
+      "accuracy": 0.5339184766438559,
+      "AP_small": 0.09913462327023788,
+      "AP_medium": 0.5475423644354304,
+      "AP_large": 0.8538595526219288,
+      "images": 150,
+      "detections": 25550,
+      "fruits": 7616
+    },
+    "warnings": []
+  },
+  "validation": {
+    "metrics": {
+      "AP": 0.0,
+      "AP50": 0.0,
+      "AP75": 0.0,
+      "AP_orange": NaN,
+      "AP_apple": 0.0,
+      "AP_pear": NaN,
+      "AP_lemon": NaN,
+      "AP_agnostic": 0.24552331907369118,
+      "accuracy": 0.0,
+      "AP_small": 0.0,
+      "AP_medium": 0.0,
+      "AP_large": 0.0,
+      "images": 50,
+      "detections": 7391,
+      "fruits": 3460
+    },
+    "warnings": []
+  }
+}
