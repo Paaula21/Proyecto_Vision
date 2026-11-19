@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import warnings
 from pathlib import Path
 
 import numpy as np
@@ -35,7 +36,7 @@ def read_ids(path):
 
 "Carga las listas de entrenamiento y validación del fold elegido."
 def load_split(data_dir, splits_dir, fold):
-    "Rechaza listas obsoletas, imágenes compartidas o fugas de fruit_id."
+    "Valida las listas; solo el holdout por especie permite frutas compartidas."
     data_dir, splits_dir = Path(data_dir), Path(splits_dir)
     annotations_path = data_dir / "annotations.json"
     checks = json.loads((splits_dir / "checks.json").read_text(encoding="utf-8"))
@@ -71,8 +72,33 @@ def load_split(data_dir, splits_dir, fold):
         raise ValueError("Las listas no cubren exactamente las imágenes del dataset")
     train_fruits = {a["fruit_id"] for a in dataset["annotations"] if a["image_id"] in train_set}
     val_fruits = {a["fruit_id"] for a in dataset["annotations"] if a["image_id"] in val_set}
-    if train_fruits & val_fruits:
+    shared = train_fruits & val_fruits
+    protocol = folds.get("protocol", "leave-one-tree-out (LOTO)")
+    if protocol == "species-stratified-holdout":
+        if checks.get("protocol") != protocol:
+            raise ValueError("El protocolo no coincide con checks.json")
+        species_by_image = {image_id: set() for image_id in image_ids}
+        for annotation in dataset["annotations"]:
+            species_by_image[annotation["image_id"]].add(annotation["category_id"])
+        if any(len(species) != 1 or not species <= CATEGORIES.keys() for species in species_by_image.values()):
+            raise ValueError("El holdout requiere una única especie oficial por imagen")
+        counts = {
+            name: {"train": sum(species_by_image[i] == {category} for i in train_ids),
+                   "validation": sum(species_by_image[i] == {category} for i in val_ids)}
+            for category, name in CATEGORIES.items()
+        }
+        if any(count != {"train": 40, "validation": 10} for count in counts.values()):
+            raise ValueError("El holdout requiere 40/10 imágenes por especie")
+        if (fold_info.get("n_shared_fruit_ids") != len(shared)
+                or set(fold_info.get("shared_fruit_ids", [])) != shared):
+            raise ValueError("El solapamiento de fruit_id no coincide con folds.json")
+        warnings.warn(f"Holdout por especie: {len(shared)} frutas compartidas; no mide árboles nuevos.",
+                      UserWarning, stacklevel=2)
+    elif protocol != "leave-one-tree-out (LOTO)":
+        raise ValueError(f"Protocolo de split desconocido: {protocol}")
+    elif shared:
         raise ValueError("Hay frutas compartidas entre entrenamiento y validación")
+    fold_info = {**fold_info, "protocol": protocol, "n_shared_fruit_ids": len(shared)}
     return train_ids, val_ids, fold_info, annotations_hash
 
 "Es el lector de imágenes y anotaciones para PyTorch"

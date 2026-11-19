@@ -71,6 +71,8 @@ def main():
         "categories": {"0": "background", "1": "orange", "2": "apple", "3": "pear", "4": "lemon"},
         "fold": args.fold,
         "validation_species": fold_info["val_species"],
+        "split_protocol": fold_info["protocol"],
+        "split_shared_fruit_ids": fold_info["n_shared_fruit_ids"],
         "train_ids": train_ids,
         "val_ids": val_ids,
         "annotations_sha256": annotations_hash,

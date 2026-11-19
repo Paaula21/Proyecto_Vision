@@ -236,6 +236,15 @@ def write_report(output: Path, fold_info: dict[str, Any], scored: dict[str, Any]
         "solo detección: la clasificación de esa especie está fuera de distribución. "
         "AP_agnostic es la métrica principal para valorar si se encuentran frutas."
     )
+    species_holdout = fold_info.get("protocol") == "species-stratified-holdout"
+    if species_holdout:
+        caveat = (
+            "Holdout por especie: 40 imágenes de entrenamiento y 10 de validación por especie. "
+            "Las cuatro especies aparecen en ambos conjuntos; AP y AP por especie permiten "
+            "estudiar el reconocimiento. Se comparten árboles y "
+            f"{fold_info['n_shared_fruit_ids']} fruit_id: los resultados pueden ser optimistas "
+            "y no miden generalización a árboles nuevos. No son comparables con LOTO."
+        )
     lines = [
         f"# Evaluación del detector — fold {fold_info['fold']}",
         "",
@@ -275,8 +284,10 @@ def write_report(output: Path, fold_info: dict[str, Any], scored: dict[str, Any]
         "está dominado por frutas pequeñas y parcialmente ocultas.",
         "2. Si hay muchos falsos positivos de alta confianza, revisar resolución, "
         "augmentations y calibración de puntuaciones.",
-        "3. Tratar por separado la clasificación de la especie excluida del fold: "
-        "su AP no es comparable con las especies vistas durante el entrenamiento.",
+        ("3. Revisar el AP de las cuatro especies teniendo en cuenta las frutas y árboles compartidos."
+         if species_holdout else
+         "3. Tratar por separado la clasificación de la especie excluida del fold: "
+         "su AP no es comparable con las especies vistas durante el entrenamiento."),
         "",
         "La comparación entrenamiento/validación es diagnóstica y no modifica los pesos. "
         "Una diferencia grande entre ambas puede indicar sobreajuste.",
@@ -359,6 +370,8 @@ def main(argv: list[str] | None = None) -> None:
         "train_ids": train_ids,
         "validation_ids": val_ids,
         "validation_species": fold_info["val_species"],
+        "split_protocol": fold_info["protocol"],
+        "split_shared_fruit_ids": fold_info["n_shared_fruit_ids"],
         "annotations_sha256": annotations_hash,
         "weights": str(args.weights),
         "weights_sha256": sha256(args.weights),
