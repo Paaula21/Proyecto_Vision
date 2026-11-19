@@ -1,0 +1,514 @@
+{
+  "iou_threshold": 0.5,
+  "images": 50,
+  "false_positives": 3241,
+  "false_negatives": 1710,
+  "classification_errors": 1750,
+  "overlap_errors": 596,
+  "high_confidence_false_positives": 212,
+  "small_false_negatives": 1696,
+  "occluded_false_negatives": 1355,
+  "matched": 1750,
+  "by_image": {
+    "1": {
+      "false_positives": 57,
+      "false_negatives": 50,
+      "classification_errors": 43,
+      "overlap_errors": 11,
+      "high_confidence_false_positives": 6,
+      "small_false_negatives": 49,
+      "occluded_false_negatives": 42,
+      "matched": 43
+    },
+    "3": {
+      "false_positives": 75,
+      "false_negatives": 26,
+      "classification_errors": 25,
+      "overlap_errors": 17,
+      "high_confidence_false_positives": 1,
+      "small_false_negatives": 26,
+      "occluded_false_negatives": 16,
+      "matched": 25
+    },
+    "5": {
+      "false_positives": 62,
+      "false_negatives": 21,
+      "classification_errors": 38,
+      "overlap_errors": 7,
+      "high_confidence_false_positives": 2,
+      "small_false_negatives": 21,
+      "occluded_false_negatives": 19,
+      "matched": 38
+    },
+    "6": {
+      "false_positives": 78,
+      "false_negatives": 28,
+      "classification_errors": 22,
+      "overlap_errors": 11,
+      "high_confidence_false_positives": 1,
+      "small_false_negatives": 28,
+      "occluded_false_negatives": 24,
+      "matched": 22
+    },
+    "12": {
+      "false_positives": 72,
+      "false_negatives": 29,
+      "classification_errors": 28,
+      "overlap_errors": 11,
+      "high_confidence_false_positives": 8,
+      "small_false_negatives": 28,
+      "occluded_false_negatives": 24,
+      "matched": 28
+    },
+    "24": {
+      "false_positives": 60,
+      "false_negatives": 28,
+      "classification_errors": 40,
+      "overlap_errors": 14,
+      "high_confidence_false_positives": 3,
+      "small_false_negatives": 28,
+      "occluded_false_negatives": 26,
+      "matched": 40
+    },
+    "25": {
+      "false_positives": 59,
+      "false_negatives": 47,
+      "classification_errors": 41,
+      "overlap_errors": 8,
+      "high_confidence_false_positives": 5,
+      "small_false_negatives": 47,
+      "occluded_false_negatives": 39,
+      "matched": 41
+    },
+    "27": {
+      "false_positives": 44,
+      "false_negatives": 51,
+      "classification_errors": 56,
+      "overlap_errors": 14,
+      "high_confidence_false_positives": 6,
+      "small_false_negatives": 51,
+      "occluded_false_negatives": 38,
+      "matched": 56
+    },
+    "32": {
+      "false_positives": 72,
+      "false_negatives": 34,
+      "classification_errors": 28,
+      "overlap_errors": 12,
+      "high_confidence_false_positives": 6,
+      "small_false_negatives": 34,
+      "occluded_false_negatives": 32,
+      "matched": 28
+    },
+    "36": {
+      "false_positives": 69,
+      "false_negatives": 30,
+      "classification_errors": 31,
+      "overlap_errors": 12,
+      "high_confidence_false_positives": 2,
+      "small_false_negatives": 30,
+      "occluded_false_negatives": 22,
+      "matched": 31
+    },
+    "38": {
+      "false_positives": 83,
+      "false_negatives": 25,
+      "classification_errors": 17,
+      "overlap_errors": 10,
+      "high_confidence_false_positives": 5,
+      "small_false_negatives": 24,
+      "occluded_false_negatives": 23,
+      "matched": 17
+    },
+    "43": {
+      "false_positives": 75,
+      "false_negatives": 45,
+      "classification_errors": 25,
+      "overlap_errors": 16,
+      "high_confidence_false_positives": 1,
+      "small_false_negatives": 45,
+      "occluded_false_negatives": 28,
+      "matched": 25
+    },
+    "49": {
+      "false_positives": 88,
+      "false_negatives": 10,
+      "classification_errors": 12,
+      "overlap_errors": 6,
+      "high_confidence_false_positives": 1,
+      "small_false_negatives": 10,
+      "occluded_false_negatives": 7,
+      "matched": 12
+    },
+    "50": {
+      "false_positives": 61,
+      "false_negatives": 40,
+      "classification_errors": 39,
+      "overlap_errors": 10,
+      "high_confidence_false_positives": 2,
+      "small_false_negatives": 40,
+      "occluded_false_negatives": 31,
+      "matched": 39
+    },
+    "51": {
+      "false_positives": 74,
+      "false_negatives": 16,
+      "classification_errors": 26,
+      "overlap_errors": 8,
+      "high_confidence_false_positives": 6,
+      "small_false_negatives": 16,
+      "occluded_false_negatives": 15,
+      "matched": 26
+    },
+    "56": {
+      "false_positives": 71,
+      "false_negatives": 32,
+      "classification_errors": 29,
+      "overlap_errors": 16,
+      "high_confidence_false_positives": 2,
+      "small_false_negatives": 32,
+      "occluded_false_negatives": 23,
+      "matched": 29
+    },
+    "60": {
+      "false_positives": 74,
+      "false_negatives": 40,
+      "classification_errors": 26,
+      "overlap_errors": 15,
+      "high_confidence_false_positives": 6,
+      "small_false_negatives": 40,
+      "occluded_false_negatives": 29,
+      "matched": 26
+    },
+    "68": {
+      "false_positives": 63,
+      "false_negatives": 32,
+      "classification_errors": 37,
+      "overlap_errors": 15,
+      "high_confidence_false_positives": 4,
+      "small_false_negatives": 32,
+      "occluded_false_negatives": 26,
+      "matched": 37
+    },
+    "75": {
+      "false_positives": 58,
+      "false_negatives": 39,
+      "classification_errors": 42,
+      "overlap_errors": 18,
+      "high_confidence_false_positives": 4,
+      "small_false_negatives": 39,
+      "occluded_false_negatives": 36,
+      "matched": 42
+    },
+    "78": {
+      "false_positives": 60,
+      "false_negatives": 36,
+      "classification_errors": 40,
+      "overlap_errors": 12,
+      "high_confidence_false_positives": 4,
+      "small_false_negatives": 36,
+      "occluded_false_negatives": 23,
+      "matched": 40
+    },
+    "83": {
+      "false_positives": 46,
+      "false_negatives": 48,
+      "classification_errors": 54,
+      "overlap_errors": 14,
+      "high_confidence_false_positives": 6,
+      "small_false_negatives": 48,
+      "occluded_false_negatives": 43,
+      "matched": 54
+    },
+    "84": {
+      "false_positives": 53,
+      "false_negatives": 49,
+      "classification_errors": 47,
+      "overlap_errors": 16,
+      "high_confidence_false_positives": 3,
+      "small_false_negatives": 49,
+      "occluded_false_negatives": 33,
+      "matched": 47
+    },
+    "88": {
+      "false_positives": 94,
+      "false_negatives": 13,
+      "classification_errors": 6,
+      "overlap_errors": 5,
+      "high_confidence_false_positives": 2,
+      "small_false_negatives": 13,
+      "occluded_false_negatives": 9,
+      "matched": 6
+    },
+    "91": {
+      "false_positives": 53,
+      "false_negatives": 42,
+      "classification_errors": 47,
+      "overlap_errors": 13,
+      "high_confidence_false_positives": 7,
+      "small_false_negatives": 42,
+      "occluded_false_negatives": 32,
+      "matched": 47
+    },
+    "96": {
+      "false_positives": 53,
+      "false_negatives": 49,
+      "classification_errors": 47,
+      "overlap_errors": 16,
+      "high_confidence_false_positives": 7,
+      "small_false_negatives": 47,
+      "occluded_false_negatives": 38,
+      "matched": 47
+    },
+    "105": {
+      "false_positives": 89,
+      "false_negatives": 4,
+      "classification_errors": 11,
+      "overlap_errors": 5,
+      "high_confidence_false_positives": 5,
+      "small_false_negatives": 2,
+      "occluded_false_negatives": 4,
+      "matched": 11
+    },
+    "110": {
+      "false_positives": 49,
+      "false_negatives": 52,
+      "classification_errors": 51,
+      "overlap_errors": 24,
+      "high_confidence_false_positives": 7,
+      "small_false_negatives": 52,
+      "occluded_false_negatives": 44,
+      "matched": 51
+    },
+    "112": {
+      "false_positives": 62,
+      "false_negatives": 24,
+      "classification_errors": 38,
+      "overlap_errors": 5,
+      "high_confidence_false_positives": 6,
+      "small_false_negatives": 24,
+      "occluded_false_negatives": 21,
+      "matched": 38
+    },
+    "113": {
+      "false_positives": 65,
+      "false_negatives": 21,
+      "classification_errors": 35,
+      "overlap_errors": 10,
+      "high_confidence_false_positives": 3,
+      "small_false_negatives": 21,
+      "occluded_false_negatives": 20,
+      "matched": 35
+    },
+    "117": {
+      "false_positives": 54,
+      "false_negatives": 38,
+      "classification_errors": 46,
+      "overlap_errors": 13,
+      "high_confidence_false_positives": 5,
+      "small_false_negatives": 37,
+      "occluded_false_negatives": 27,
+      "matched": 46
+    },
+    "126": {
+      "false_positives": 54,
+      "false_negatives": 43,
+      "classification_errors": 37,
+      "overlap_errors": 9,
+      "high_confidence_false_positives": 6,
+      "small_false_negatives": 43,
+      "occluded_false_negatives": 39,
+      "matched": 37
+    },
+    "132": {
+      "false_positives": 60,
+      "false_negatives": 45,
+      "classification_errors": 40,
+      "overlap_errors": 9,
+      "high_confidence_false_positives": 4,
+      "small_false_negatives": 45,
+      "occluded_false_negatives": 39,
+      "matched": 40
+    },
+    "134": {
+      "false_positives": 43,
+      "false_negatives": 42,
+      "classification_errors": 57,
+      "overlap_errors": 10,
+      "high_confidence_false_positives": 3,
+      "small_false_negatives": 41,
+      "occluded_false_negatives": 31,
+      "matched": 57
+    },
+    "141": {
+      "false_positives": 44,
+      "false_negatives": 54,
+      "classification_errors": 56,
+      "overlap_errors": 20,
+      "high_confidence_false_positives": 9,
+      "small_false_negatives": 54,
+      "occluded_false_negatives": 47,
+      "matched": 56
+    },
+    "143": {
+      "false_positives": 50,
+      "false_negatives": 27,
+      "classification_errors": 50,
+      "overlap_errors": 12,
+      "high_confidence_false_positives": 6,
+      "small_false_negatives": 26,
+      "occluded_false_negatives": 19,
+      "matched": 50
+    },
+    "145": {
+      "false_positives": 71,
+      "false_negatives": 27,
+      "classification_errors": 29,
+      "overlap_errors": 11,
+      "high_confidence_false_positives": 4,
+      "small_false_negatives": 27,
+      "occluded_false_negatives": 20,
+      "matched": 29
+    },
+    "147": {
+      "false_positives": 71,
+      "false_negatives": 34,
+      "classification_errors": 29,
+      "overlap_errors": 14,
+      "high_confidence_false_positives": 4,
+      "small_false_negatives": 34,
+      "occluded_false_negatives": 33,
+      "matched": 29
+    },
+    "148": {
+      "false_positives": 71,
+      "false_negatives": 29,
+      "classification_errors": 29,
+      "overlap_errors": 4,
+      "high_confidence_false_positives": 2,
+      "small_false_negatives": 26,
+      "occluded_false_negatives": 24,
+      "matched": 29
+    },
+    "150": {
+      "false_positives": 67,
+      "false_negatives": 44,
+      "classification_errors": 33,
+      "overlap_errors": 11,
+      "high_confidence_false_positives": 4,
+      "small_false_negatives": 44,
+      "occluded_false_negatives": 37,
+      "matched": 33
+    },
+    "165": {
+      "false_positives": 86,
+      "false_negatives": 6,
+      "classification_errors": 14,
+      "overlap_errors": 6,
+      "high_confidence_false_positives": 3,
+      "small_false_negatives": 6,
+      "occluded_false_negatives": 3,
+      "matched": 14
+    },
+    "170": {
+      "false_positives": 69,
+      "false_negatives": 22,
+      "classification_errors": 31,
+      "overlap_errors": 10,
+      "high_confidence_false_positives": 4,
+      "small_false_negatives": 21,
+      "occluded_false_negatives": 20,
+      "matched": 31
+    },
+    "172": {
+      "false_positives": 45,
+      "false_negatives": 26,
+      "classification_errors": 55,
+      "overlap_errors": 8,
+      "high_confidence_false_positives": 2,
+      "small_false_negatives": 26,
+      "occluded_false_negatives": 23,
+      "matched": 55
+    },
+    "181": {
+      "false_positives": 77,
+      "false_negatives": 37,
+      "classification_errors": 23,
+      "overlap_errors": 10,
+      "high_confidence_false_positives": 4,
+      "small_false_negatives": 37,
+      "occluded_false_negatives": 33,
+      "matched": 23
+    },
+    "186": {
+      "false_positives": 76,
+      "false_negatives": 50,
+      "classification_errors": 24,
+      "overlap_errors": 16,
+      "high_confidence_false_positives": 5,
+      "small_false_negatives": 50,
+      "occluded_false_negatives": 31,
+      "matched": 24
+    },
+    "187": {
+      "false_positives": 78,
+      "false_negatives": 50,
+      "classification_errors": 22,
+      "overlap_errors": 13,
+      "high_confidence_false_positives": 3,
+      "small_false_negatives": 50,
+      "occluded_false_negatives": 37,
+      "matched": 22
+    },
+    "188": {
+      "false_positives": 51,
+      "false_negatives": 38,
+      "classification_errors": 49,
+      "overlap_errors": 14,
+      "high_confidence_false_positives": 3,
+      "small_false_negatives": 38,
+      "occluded_false_negatives": 30,
+      "matched": 49
+    },
+    "191": {
+      "false_positives": 64,
+      "false_negatives": 18,
+      "classification_errors": 36,
+      "overlap_errors": 15,
+      "high_confidence_false_positives": 6,
+      "small_false_negatives": 18,
+      "occluded_false_negatives": 13,
+      "matched": 36
+    },
+    "192": {
+      "false_positives": 66,
+      "false_negatives": 56,
+      "classification_errors": 34,
+      "overlap_errors": 16,
+      "high_confidence_false_positives": 7,
+      "small_false_negatives": 56,
+      "occluded_false_negatives": 33,
+      "matched": 34
+    },
+    "194": {
+      "false_positives": 47,
+      "false_negatives": 43,
+      "classification_errors": 53,
+      "overlap_errors": 16,
+      "high_confidence_false_positives": 4,
+      "small_false_negatives": 43,
+      "occluded_false_negatives": 34,
+      "matched": 53
+    },
+    "195": {
+      "false_positives": 78,
+      "false_negatives": 20,
+      "classification_errors": 22,
+      "overlap_errors": 8,
+      "high_confidence_false_positives": 3,
+      "small_false_negatives": 20,
+      "occluded_false_negatives": 15,
+      "matched": 22
+    }
+  }
+}
