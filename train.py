@@ -30,11 +30,14 @@ def main():
     parser.add_argument("--device", choices=["cpu", "cuda"], default="cpu")
     parser.add_argument("--epochs", type=int, default=10)
     parser.add_argument("--learning-rate", type=float, default=0.005)
+    parser.add_argument("--min-size", type=int, default=960, help="Lado corto de la imagen dentro del detector")
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
 
     if args.epochs < 1 or args.learning_rate <= 0:
         parser.error("--epochs y --learning-rate deben ser positivos")
+    if not 1 <= args.min_size <= 1333:
+        parser.error("--min-size debe estar entre 1 y 1333")
     if args.device == "cuda" and not torch.cuda.is_available():
         parser.error("Se solicitó CUDA, pero no hay una GPU CUDA disponible")
     if args.output.exists():
@@ -53,7 +56,7 @@ def main():
     loader = DataLoader(dataset, batch_size=1, shuffle=True, num_workers=0, collate_fn=collate_fn)
     device = torch.device(args.device)
     # Los pesos preentrenados pueden descargarse durante el entrenamiento.
-    model = create_model(pretrained=True).to(device)
+    model = create_model(pretrained=True, min_size=args.min_size).to(device)
     optimizer = torch.optim.SGD(model.parameters(), lr=args.learning_rate, momentum=0.9, weight_decay=0.0005)
 
     config = {
@@ -69,6 +72,7 @@ def main():
         "epochs": args.epochs,
         "learning_rate": args.learning_rate,
         "batch_size": 1,
+        "min_size": args.min_size,
         "seed": args.seed,
         "device": args.device,
         "torch_version": str(torch.__version__),

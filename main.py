@@ -33,7 +33,10 @@ def load_detector(weights, device):
 
     from src.model import create_model
 
-    model = create_model(pretrained=False)
+    model_kwargs = {}
+    if "min_size" in configuration:
+        model_kwargs["min_size"] = configuration["min_size"]
+    model = create_model(pretrained=False, **model_kwargs)
     checkpoint = torch.load(weights, map_location=device)
     if checkpoint.get("config") != configuration:
         raise ValueError("configuración del checkpoint incompatible con config.json")

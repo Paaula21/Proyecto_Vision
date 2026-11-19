@@ -8,13 +8,14 @@ from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.models.detection.mask_rcnn import MaskRCNNPredictor
 
 
-def create_model(pretrained=False):
+def create_model(pretrained=False, min_size=800):
     """Crea Mask R-CNN; solo pretrained=True puede descargar pesos COCO."""
     weights = MaskRCNN_ResNet50_FPN_Weights.DEFAULT if pretrained else None
     model = maskrcnn_resnet50_fpn(
         weights=weights,
         weights_backbone=None,
         box_detections_per_img=300,
+        min_size=min_size,
     )
 
     # El índice 0 es el fondo; 1–4 corresponden a las especies oficiales.
