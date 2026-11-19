@@ -51,31 +51,16 @@ def image_to_tensor(image_path):
 
 
 def coco_rle(mask):
-    """Codifica una máscara booleana en el RLE comprimido de COCO."""
-    values = np.asarray(mask, dtype=np.uint8).ravel(order="F")
-    counts = []
-    current, length = 0, 0
-    for value in values:
-        if value != current:
-            counts.append(length)
-            current, length = value, 0
-        length += 1
-    counts.append(length)
+    """Codifica una máscara booleana en el RLE comprimido de COCO.
 
-    encoded = []
-    for index, count in enumerate(counts):
-        value = count - (counts[index - 2] if index > 2 else 0)
-        while True:
-            character = value & 0x1F
-            value >>= 5
-            more = value != (-1 if character & 0x10 else 0)
-            if more:
-                character |= 0x20
-            character += 48
-            encoded.append(chr(character + (1 if character >= 92 else 0)))
-            if not more:
-                break
-    return {"size": list(mask.shape), "counts": "".join(encoded)}
+    Usa pycocotools, el mismo formato que espera el evaluador oficial
+    (``mask_utils.encode`` con ``.decode('ascii')``).
+    """
+    from pycocotools import mask as mask_utils
+
+    mask = np.asarray(mask, dtype=np.uint8)
+    encoded = mask_utils.encode(np.asfortranarray(mask))
+    return {"size": list(mask.shape), "counts": encoded["counts"].decode("ascii")}
 
 
 def write_predictions(input_dir, output_path, detector, device="cpu"):
