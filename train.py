@@ -32,6 +32,7 @@ def main():
     parser.add_argument("--learning-rate", type=float, default=0.005)
     parser.add_argument("--min-size", type=int, default=960, help="Lado corto de la imagen dentro del detector")
     parser.add_argument("--small-anchors", action="store_true", help="Usa anclajes de 16 a 256 píxeles para frutas pequeñas")
+    parser.add_argument("--exclude-crowd", action="store_true", help="Excluye iscrowd de los objetivos; no ignora esas regiones en la pérdida")
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
 
@@ -53,7 +54,7 @@ def main():
         torch.cuda.manual_seed_all(args.seed)
         
     "Preparamos las imágenes de entrenamiento"
-    dataset = FruitDataset(args.data, train_ids)
+    dataset = FruitDataset(args.data, train_ids, exclude_crowd=args.exclude_crowd)
     loader = DataLoader(dataset, batch_size=1, shuffle=True, num_workers=0, collate_fn=collate_fn)
     device = torch.device(args.device)
     # Los pesos preentrenados pueden descargarse durante el entrenamiento.
@@ -71,7 +72,7 @@ def main():
         "train_ids": train_ids,
         "val_ids": val_ids,
         "annotations_sha256": annotations_hash,
-        "iscrowd_training": "included_as_positive",
+        "iscrowd_training": "excluded_from_targets" if args.exclude_crowd else "included_as_positive",
         "epochs": args.epochs,
         "learning_rate": args.learning_rate,
         "batch_size": 1,

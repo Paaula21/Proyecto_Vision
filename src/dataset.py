@@ -78,14 +78,15 @@ def load_split(data_dir, splits_dir, fold):
 "Es el lector de imágenes y anotaciones para PyTorch"
 class FruitDataset(Dataset):
     """
-    Las anotaciones iscrowd se incluyen como positivos en este entrenamiento;
-    el evaluador oficial sigue ignorándolas.
+    Por defecto incluye iscrowd como positivos; exclude_crowd permite excluirlos
+    de los objetivos de entrenamiento, sin crear regiones de pérdida ignorada.
     """
     
     "Carga annotations.json, guarda los ids solicitados y comprueba las categorías"
-    def __init__(self, data_dir, image_ids):
+    def __init__(self, data_dir, image_ids, exclude_crowd=False):
         self.data_dir = Path(data_dir)
         self.image_ids = list(image_ids)
+        self.exclude_crowd = exclude_crowd
         self.coco = COCO(str(self.data_dir / "annotations.json"))
         categories = {c["id"]: c["name"] for c in self.coco.dataset["categories"]}
         if categories != CATEGORIES:
@@ -112,6 +113,8 @@ class FruitDataset(Dataset):
         annotations = self.coco.loadAnns(self.coco.getAnnIds(imgIds=[image_id]))
         boxes, labels, masks = [], [], []
         for annotation in annotations:
+            if self.exclude_crowd and annotation.get("iscrowd", 0):
+                continue
             x, y, box_width, box_height = annotation["bbox"]
             if box_width <= 0 or box_height <= 0:
                 raise ValueError(f"Caja inválida en anotación {annotation['id']}")
