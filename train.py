@@ -31,6 +31,7 @@ def main():
     parser.add_argument("--epochs", type=int, default=10)
     parser.add_argument("--learning-rate", type=float, default=0.005)
     parser.add_argument("--min-size", type=int, default=960, help="Lado corto de la imagen dentro del detector")
+    parser.add_argument("--small-anchors", action="store_true", help="Usa anclajes de 16 a 256 píxeles para frutas pequeñas")
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
 
@@ -56,7 +57,9 @@ def main():
     loader = DataLoader(dataset, batch_size=1, shuffle=True, num_workers=0, collate_fn=collate_fn)
     device = torch.device(args.device)
     # Los pesos preentrenados pueden descargarse durante el entrenamiento.
-    model = create_model(pretrained=True, min_size=args.min_size).to(device)
+    model = create_model(
+        pretrained=True, min_size=args.min_size, small_anchors=args.small_anchors
+    ).to(device)
     optimizer = torch.optim.SGD(model.parameters(), lr=args.learning_rate, momentum=0.9, weight_decay=0.0005)
 
     config = {
@@ -73,6 +76,7 @@ def main():
         "learning_rate": args.learning_rate,
         "batch_size": 1,
         "min_size": args.min_size,
+        "small_anchors": args.small_anchors,
         "seed": args.seed,
         "device": args.device,
         "torch_version": str(torch.__version__),

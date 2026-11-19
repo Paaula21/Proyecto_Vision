@@ -34,8 +34,9 @@ def load_detector(weights, device):
     from src.model import create_model
 
     model_kwargs = {}
-    if "min_size" in configuration:
-        model_kwargs["min_size"] = configuration["min_size"]
+    for key in ("min_size", "small_anchors"):
+        if key in configuration:
+            model_kwargs[key] = configuration[key]
     model = create_model(pretrained=False, **model_kwargs)
     checkpoint = torch.load(weights, map_location=device)
     if checkpoint.get("config") != configuration:
