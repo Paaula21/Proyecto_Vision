@@ -6,16 +6,24 @@ from torchvision.models.detection import (
 )
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.models.detection.mask_rcnn import MaskRCNNPredictor
+from torchvision.models.detection.anchor_utils import AnchorGenerator
 
 
-def create_model(pretrained=False):
+def create_model(pretrained=False, min_size=800, small_anchors=False):
     """Crea Mask R-CNN; solo pretrained=True puede descargar pesos COCO."""
     weights = MaskRCNN_ResNet50_FPN_Weights.DEFAULT if pretrained else None
     model = maskrcnn_resnet50_fpn(
         weights=weights,
         weights_backbone=None,
         box_detections_per_img=300,
+        min_size=min_size,
     )
+    if small_anchors:
+        # Conserva tres relaciones por nivel para reutilizar la RPN preentrenada.
+        model.rpn.anchor_generator = AnchorGenerator(
+            sizes=((16,), (32,), (64,), (128,), (256,)),
+            aspect_ratios=((0.5, 1.0, 2.0),) * 5,
+        )
 
     # El índice 0 es el fondo; 1–4 corresponden a las especies oficiales.
     num_classes = 5
