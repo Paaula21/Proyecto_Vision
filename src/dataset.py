@@ -11,6 +11,8 @@ from PIL import Image
 from pycocotools.coco import COCO
 from torch.utils.data import Dataset
 
+from splits.protocols import LOTO, SPECIES_HOLDOUT
+
 
 CATEGORIES = {1: "orange", 2: "apple", 3: "pear", 4: "lemon"}
 
@@ -35,15 +37,24 @@ def read_ids(path):
     return ids
 
 "Carga las listas de entrenamiento y validación del fold elegido."
-def load_split(data_dir, splits_dir, fold):
-    "Valida las listas; solo el holdout por especie permite frutas compartidas."
+def load_split(data_dir, splits_dir, fold, allow_leaky=False):
+    "Valida las listas y exige una opción explícita para el holdout diagnóstico."
     data_dir, splits_dir = Path(data_dir), Path(splits_dir)
     annotations_path = data_dir / "annotations.json"
     checks = json.loads((splits_dir / "checks.json").read_text(encoding="utf-8"))
     folds = json.loads((splits_dir / "folds.json").read_text(encoding="utf-8"))
     annotations_hash = sha256(annotations_path)
     "Si no pasa, salta un error"
-    if not checks.get("passed"):
+    protocol = folds.get("protocol", LOTO)
+    if checks.get("protocol", LOTO) != protocol:
+        raise ValueError("El protocolo no coincide entre checks.json y folds.json")
+    diagnostic_override = (
+        allow_leaky and protocol == SPECIES_HOLDOUT
+        and checks.get("protocol") == protocol
+        and checks.get("diagnostic_only") is True
+        and checks.get("structural_passed") is True
+    )
+    if not checks.get("passed") and not diagnostic_override:
         raise ValueError("El split no ha superado las comprobaciones; revisa checks.json")
     if checks.get("sha256_annotations") != annotations_hash or folds.get("sha256_annotations") != annotations_hash:
         raise ValueError("El split no corresponde al annotations.json actual")
@@ -73,10 +84,16 @@ def load_split(data_dir, splits_dir, fold):
     train_fruits = {a["fruit_id"] for a in dataset["annotations"] if a["image_id"] in train_set}
     val_fruits = {a["fruit_id"] for a in dataset["annotations"] if a["image_id"] in val_set}
     shared = train_fruits & val_fruits
-    protocol = folds.get("protocol", "leave-one-tree-out (LOTO)")
-    if protocol == "species-stratified-holdout":
-        if checks.get("protocol") != protocol:
-            raise ValueError("El protocolo no coincide con checks.json")
+    if checks.get("no_fruit_leak", True) != (not shared):
+        raise ValueError("no_fruit_leak no coincide con las anotaciones")
+    if checks.get("passed") and shared:
+        raise ValueError("El split no puede aprobarse con fruit_id compartidos")
+    if diagnostic_override and (
+        checks.get("n_shared_fruit_ids") != len(shared)
+        or checks.get("errors") != [f"{len(shared)} fruit_id aparecen en train y val"]
+    ):
+        raise ValueError("El diagnóstico de fuga no coincide con las anotaciones")
+    if protocol == SPECIES_HOLDOUT:
         species_by_image = {image_id: set() for image_id in image_ids}
         for annotation in dataset["annotations"]:
             species_by_image[annotation["image_id"]].add(annotation["category_id"])
@@ -92,9 +109,11 @@ def load_split(data_dir, splits_dir, fold):
         if (fold_info.get("n_shared_fruit_ids") != len(shared)
                 or set(fold_info.get("shared_fruit_ids", [])) != shared):
             raise ValueError("El solapamiento de fruit_id no coincide con folds.json")
-        warnings.warn(f"Holdout por especie: {len(shared)} frutas compartidas; no mide árboles nuevos.",
+        if shared and not diagnostic_override:
+            raise ValueError("El holdout comparte frutas; requiere allow_leaky=True para diagnóstico")
+        warnings.warn(f"Holdout diagnóstico: {len(shared)} frutas compartidas; AP optimista y no comparable con LOTO.",
                       UserWarning, stacklevel=2)
-    elif protocol != "leave-one-tree-out (LOTO)":
+    elif protocol != LOTO:
         raise ValueError(f"Protocolo de split desconocido: {protocol}")
     elif shared:
         raise ValueError("Hay frutas compartidas entre entrenamiento y validación")

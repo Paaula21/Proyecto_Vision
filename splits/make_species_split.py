@@ -7,6 +7,11 @@ import random
 from collections import defaultdict
 from pathlib import Path
 
+if __package__:
+    from .protocols import SPECIES_HOLDOUT
+else:
+    from protocols import SPECIES_HOLDOUT
+
 
 def make_split(dataset, seed):
     categories = {item["id"]: item["name"] for item in dataset["categories"]}
@@ -66,14 +71,14 @@ def main():
     dataset = json.loads(path.read_text(encoding="utf-8"))
     fold = make_split(dataset, args.seed)
     metadata = {
-        "protocol": "species-stratified-holdout",
+        "protocol": SPECIES_HOLDOUT,
         "unit": "image",
         "seed": args.seed,
         "sha256_annotations": hashlib.sha256(path.read_bytes()).hexdigest(),
         "data": str(args.data),
         "warnings": [
-            "Entrenamiento y validación comparten árboles y pueden compartir fruit_id; "
-            "esta prueba no mide generalización a árboles nuevos."
+            "Entrenamiento y validación comparten árboles y fruit_id; esta prueba "
+            "es solo diagnóstica y sus métricas de validación son optimistas."
         ],
     }
     args.out.mkdir(parents=True)
@@ -83,7 +88,11 @@ def main():
         (folder / f"{name}.txt").write_text("".join(f"{i}\n" for i in fold[name]), encoding="utf-8")
     for name, value in (
         ("folds.json", {**metadata, "n_folds": 1, "folds": [fold]}),
-        ("checks.json", {**metadata, "passed": True, "no_fruit_leak": not fold["shared_fruit_ids"],
+        ("checks.json", {**metadata, "passed": not fold["shared_fruit_ids"],
+                         "structural_passed": True, "diagnostic_only": bool(fold["shared_fruit_ids"]),
+                         "no_fruit_leak": not fold["shared_fruit_ids"],
+                         "errors": ([f"{fold['n_shared_fruit_ids']} fruit_id aparecen en train y val"]
+                                    if fold["shared_fruit_ids"] else []),
                          "species_counts": fold["species_counts"],
                          "n_shared_fruit_ids": fold["n_shared_fruit_ids"]}),
     ):

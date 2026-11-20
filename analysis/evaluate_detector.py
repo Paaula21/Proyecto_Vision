@@ -1,10 +1,14 @@
-"""Evaluate the detector on a reproducible train/validation split.
+"""Evaluate the detector with the official scorer.
 
-The script runs inference once, scores the same predictions on the selected
-fold's train and validation image IDs, and writes metrics, error summaries and
-visualisation inputs to an output directory.
+The script runs inference once and scores all annotated images by default.
+Passing --fold keeps the train/validation analysis for a selected fold. It
+writes metrics, error summaries and visualisation inputs to an output directory.
 
 Example::
+
+    python analysis/evaluate_detector.py --data fruits_part1/train \
+        --weights .artifacts/inference/detector.pth \
+        --output .artifacts/evaluation/all_images
 
     python analysis/evaluate_detector.py --fold 0 \
         --data fruits_part1/train \
@@ -19,8 +23,10 @@ import argparse
 import hashlib
 import importlib.util
 import json
+import platform
 import subprocess
 import sys
+import time
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
@@ -28,6 +34,8 @@ from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
+
+from splits.protocols import SPECIES_HOLDOUT
 
 
 def load_json(path: Path) -> Any:
@@ -236,14 +244,15 @@ def write_report(output: Path, fold_info: dict[str, Any], scored: dict[str, Any]
         "solo detección: la clasificación de esa especie está fuera de distribución. "
         "AP_agnostic es la métrica principal para valorar si se encuentran frutas."
     )
-    species_holdout = fold_info.get("protocol") == "species-stratified-holdout"
+    species_holdout = fold_info.get("protocol") == SPECIES_HOLDOUT
     if species_holdout:
         caveat = (
             "Holdout por especie: 40 imágenes de entrenamiento y 10 de validación por especie. "
             "Las cuatro especies aparecen en ambos conjuntos; AP y AP por especie permiten "
             "estudiar el reconocimiento. Se comparten árboles y "
-            f"{fold_info['n_shared_fruit_ids']} fruit_id: los resultados pueden ser optimistas "
-            "y no miden generalización a árboles nuevos. No son comparables con LOTO."
+            f"{fold_info['n_shared_fruit_ids']} fruit_id: las métricas de validación son "
+            "optimistas y solo diagnósticas. No miden generalización a árboles nuevos "
+            "ni son comparables con LOTO."
         )
     lines = [
         f"# Evaluación del detector — fold {fold_info['fold']}",
@@ -295,6 +304,27 @@ def write_report(output: Path, fold_info: dict[str, Any], scored: dict[str, Any]
     (output / "report.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def write_all_images_report(output: Path, scored: dict[str, Any]) -> None:
+    metrics = scored["all"]["metrics"]
+    lines = [
+        "# Evaluación del detector — todas las imágenes anotadas",
+        "",
+        f"Imágenes evaluadas: {metrics['images']}.",
+        "Estas métricas incluyen imágenes usadas para entrenar si el checkpoint las vio; "
+        "en ese caso no estiman el rendimiento en imágenes nuevas.",
+        "",
+        "| Métrica | Valor |",
+        "|---|---:|",
+    ]
+    for name in (
+        "AP", "AP50", "AP75", "AP_agnostic", "accuracy",
+        "AP_small", "AP_medium", "AP_large",
+        "AP_orange", "AP_apple", "AP_pear", "AP_lemon",
+    ):
+        lines.append(f"| `{name}` | {metrics.get(name, float('nan')):.4f} |")
+    (output / "report.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
 def render_examples(
     data_dir: Path,
     ground_truth: Path,
@@ -332,55 +362,101 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data", type=Path, default=Path("fruits_part1/train"))
     parser.add_argument("--splits", type=Path, default=Path("splits"))
-    parser.add_argument("--fold", type=int, default=0)
-    parser.add_argument("--weights", type=Path, default=Path(".artifacts/inference/detector.pth"))
+    parser.add_argument("--fold", type=int, help="Evalúa train/val del fold indicado; por defecto evalúa todas las imágenes")
+    parser.add_argument("--weights", type=Path,
+                        help="Checkpoint para generar predicciones; por defecto .artifacts/inference/detector.pth")
     parser.add_argument("--predictions", type=Path, help="Reuse an existing full-dataset COCO predictions file")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--device", choices=("cpu", "cuda"), default="cpu")
     parser.add_argument("--max-examples-per-type", type=int, default=10)
+    parser.add_argument("--allow-leaky-split", action="store_true",
+                        help="Permite evaluar el holdout diagnóstico con frutas compartidas")
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> None:
     args = parse_args(argv)
-    from src.dataset import load_split
+    from src.runtime_info import hardware_info
+    import torch
 
+    started = time.perf_counter()
     args.output.mkdir(parents=True, exist_ok=True)
-    train_ids, val_ids, fold_info, annotations_hash = load_split(args.data, args.splits, args.fold)
+    ground_truth = args.data / "annotations.json"
+    annotations_hash = sha256(ground_truth)
+    if args.fold is None:
+        image_ids = sorted(image["id"] for image in load_json(ground_truth)["images"])
+        if len(image_ids) != len(set(image_ids)):
+            raise ValueError("Hay IDs de imagen duplicados en annotations.json")
+        fold_info = None
+    else:
+        from src.dataset import load_split
+
+        train_ids, val_ids, fold_info, annotations_hash = load_split(
+            args.data, args.splits, args.fold, allow_leaky=args.allow_leaky_split
+        )
     predictions_path = args.predictions or (args.output / "predictions.json")
+    weights_path = args.weights or (Path(".artifacts/inference/detector.pth") if args.predictions is None else None)
+    inference_seconds = None
     if args.predictions is None:
         from main import load_detector, write_predictions
 
-        write_predictions(args.data, predictions_path, load_detector(args.weights, args.device))
+        inference_started = time.perf_counter()
+        write_predictions(args.data, predictions_path, load_detector(weights_path, args.device), args.device)
+        if args.device == "cuda":
+            torch.cuda.synchronize()
+        inference_seconds = time.perf_counter() - inference_started
 
-    ground_truth = args.data / "annotations.json"
+    evaluation_started = time.perf_counter()
     predictions = load_json(predictions_path)
-    scored = {
-        "train": score_predictions(predictions_path, ground_truth, train_ids),
-        "validation": score_predictions(predictions_path, ground_truth, val_ids),
-    }
-    errors = classify_errors(predictions, ground_truth, val_ids)
+    if fold_info is None:
+        scored = {"all": score_predictions(predictions_path, ground_truth, image_ids)}
+        errors = classify_errors(predictions, ground_truth, image_ids)
+    else:
+        scored = {
+            "train": score_predictions(predictions_path, ground_truth, train_ids),
+            "validation": score_predictions(predictions_path, ground_truth, val_ids),
+        }
+        errors = classify_errors(predictions, ground_truth, val_ids)
+    evaluation_seconds = time.perf_counter() - evaluation_started
     examples = select_error_examples(errors, args.max_examples_per_type)
+    rendering_started = time.perf_counter()
     rendered_ids = render_examples(args.data, ground_truth, predictions_path, args.output, examples)
+    rendering_seconds = time.perf_counter() - rendering_started
     (args.output / "metrics.json").write_text(json.dumps(scored, indent=2) + "\n", encoding="utf-8")
     (args.output / "errors.json").write_text(json.dumps(errors, indent=2) + "\n", encoding="utf-8")
     (args.output / "error_examples.json").write_text(json.dumps(examples, indent=2) + "\n", encoding="utf-8")
     metadata = {
-        "fold": args.fold,
-        "train_ids": train_ids,
-        "validation_ids": val_ids,
-        "validation_species": fold_info["val_species"],
-        "split_protocol": fold_info["protocol"],
-        "split_shared_fruit_ids": fold_info["n_shared_fruit_ids"],
+        "scope": "all" if fold_info is None else "fold",
         "annotations_sha256": annotations_hash,
-        "weights": str(args.weights),
-        "weights_sha256": sha256(args.weights),
+        "weights": str(weights_path) if weights_path is not None else None,
+        "weights_sha256": sha256(weights_path) if weights_path is not None else None,
         "predictions": str(predictions_path),
         "device": args.device,
+        "hardware": hardware_info(args.device, torch),
+        "python": platform.python_version(),
+        "torch": torch.__version__,
+        "inference_seconds": inference_seconds,
+        "evaluation_seconds": evaluation_seconds,
+        "rendering_seconds": rendering_seconds,
+        "total_seconds": time.perf_counter() - started,
         "visualized_image_ids": rendered_ids,
     }
+    if fold_info is None:
+        metadata.update({"image_ids": image_ids, "image_count": len(image_ids)})
+    else:
+        metadata.update({
+            "fold": args.fold,
+            "train_ids": train_ids,
+            "validation_ids": val_ids,
+            "validation_species": fold_info["val_species"],
+            "split_protocol": fold_info["protocol"],
+            "split_shared_fruit_ids": fold_info["n_shared_fruit_ids"],
+        })
     (args.output / "metadata.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
-    write_report(args.output, fold_info, scored, errors)
+    if fold_info is None:
+        write_all_images_report(args.output, scored)
+    else:
+        write_report(args.output, fold_info, scored, errors)
     print(f"Evaluación guardada en: {args.output}")
 
 

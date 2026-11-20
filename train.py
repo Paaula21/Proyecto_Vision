@@ -14,6 +14,7 @@ from torch.utils.data import DataLoader
 
 from src.dataset import FruitDataset, collate_fn, load_split
 from src.model import create_model
+from src.runtime_info import hardware_info
 
 
 def main():
@@ -36,6 +37,8 @@ def main():
     parser.add_argument("--small-anchors", action="store_true", help="Usa anclajes de 16 a 256 píxeles para frutas pequeñas")
     parser.add_argument("--exclude-crowd", action="store_true", help="Excluye iscrowd de los objetivos; no ignora esas regiones en la pérdida")
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--allow-leaky-split", action="store_true",
+                        help="Permite entrenar con el holdout diagnóstico que comparte fruit_id")
     args = parser.parse_args()
 
     if args.epochs < 1 or args.learning_rate <= 0:
@@ -48,7 +51,9 @@ def main():
         parser.error("--output debe ser un directorio nuevo para no sobrescribir experimentos")
 
     "Comprobamos el split"
-    train_ids, val_ids, fold_info, annotations_hash = load_split(args.data, args.splits, args.fold)
+    train_ids, val_ids, fold_info, annotations_hash = load_split(
+        args.data, args.splits, args.fold, allow_leaky=args.allow_leaky_split
+    )
     random.seed(args.seed)
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
@@ -84,6 +89,7 @@ def main():
         "small_anchors": args.small_anchors,
         "seed": args.seed,
         "device": args.device,
+        "hardware": hardware_info(args.device, torch),
         "torch_version": str(torch.__version__),
         "torchvision_version": str(torchvision.__version__),
     }
@@ -91,7 +97,7 @@ def main():
     (args.output / "config.json").write_text(
         json.dumps(config, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
     )
-    history = {"device": args.device, "epochs": []}
+    history = {"device": args.device, "hardware": config["hardware"], "epochs": []}
     if device.type == "cuda":
         torch.cuda.synchronize(device)
     training_started = time.perf_counter()

@@ -26,6 +26,11 @@ import json
 import sys
 from pathlib import Path
 
+if __package__:
+    from .protocols import LOTO
+else:
+    from protocols import LOTO
+
 
 def sha256(path: Path) -> str:
     h = hashlib.sha256()
@@ -179,7 +184,7 @@ def main() -> int:
         warnings.append("el split NO se ha publicado como válido; revisa errors")
 
     folds_doc = {
-        "protocol": "leave-one-tree-out (LOTO)",
+        "protocol": LOTO,
         "unit": "tree",
         "data": str(data),
         "sha256_annotations": sha256(ann_path),
