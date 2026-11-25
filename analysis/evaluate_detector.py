@@ -25,6 +25,8 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
+import numpy as np
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
@@ -59,8 +61,112 @@ def score_predictions(predictions_path: Path, ground_truth_path: Path, image_ids
     ground_truth = evaluator.load_gt(ground_truth_path)
     predictions = load_json(predictions_path)
     valid_predictions, warnings = evaluator.validate(predictions, ground_truth)
-    metrics = evaluator.evaluate(ground_truth, valid_predictions, image_ids)
+    with fast_mask_iou(evaluator):
+        metrics = evaluator.evaluate(ground_truth, valid_predictions, image_ids)
     return {"metrics": metrics, "warnings": warnings}
+
+
+def filter_predictions(predictions: list[dict[str, Any]], threshold: float) -> list[dict[str, Any]]:
+    """Keep predictions whose confidence is at least ``threshold``."""
+    if not 0.0 <= threshold <= 1.0:
+        raise ValueError("El umbral debe estar entre 0 y 1")
+    return [prediction for prediction in predictions if float(prediction["score"]) >= threshold]
+
+
+class _FastMaskIoU:
+    """Compute exact RLE IoU without decoding every pair to a full image."""
+
+    def __init__(self) -> None:
+        self._cache: dict[int, tuple[tuple[int, ...], int, tuple[int, int, int, int]]] = {}
+
+    @staticmethod
+    def _runs(rle: dict[str, Any]) -> tuple[int, ...]:
+        counts = rle["counts"]
+        runs = list(counts) if isinstance(counts, list) else []
+        if not isinstance(counts, list):
+            value = shift = 0
+            for character in counts:
+                code = ord(character) - 48
+                value |= (code & 0x1F) << shift
+                if code & 0x20:
+                    shift += 5
+                    continue
+                if code & 0x10:
+                    value |= -1 << shift
+                runs.append(value + (runs[-2] if len(runs) > 1 else 0))
+                value = shift = 0
+        return tuple(int(run) for run in runs)
+
+    def _record(self, rle: dict[str, Any]) -> tuple[tuple[int, ...], int, tuple[int, int, int, int]]:
+        key = id(rle)
+        record = self._cache.get(key)
+        if record is not None:
+            return record
+        runs = self._runs(rle)
+        area = sum(runs[1::2])
+        from pycocotools import mask as mask_utils
+
+        x, y, width, height = (int(value) for value in mask_utils.toBbox([rle])[0])
+        record = (runs, area, (x, y, x + width, y + height))
+        self._cache[key] = record
+        return record
+
+    @staticmethod
+    def _intersection(first: tuple[int, ...], second: tuple[int, ...]) -> int:
+        first_index = second_index = 0
+        first_remaining = first[0] if first else 0
+        second_remaining = second[0] if second else 0
+        intersection = 0
+        while first_index < len(first) and second_index < len(second):
+            shared = min(first_remaining, second_remaining)
+            if first_index % 2 and second_index % 2:
+                intersection += shared
+            first_remaining -= shared
+            second_remaining -= shared
+            if first_remaining == 0:
+                first_index += 1
+                if first_index < len(first):
+                    first_remaining = first[first_index]
+            if second_remaining == 0:
+                second_index += 1
+                if second_index < len(second):
+                    second_remaining = second[second_index]
+        return intersection
+
+    def iou(self, detections: list[dict[str, Any]], ground_truth: list[dict[str, Any]], iscrowd: list[int]) -> np.ndarray:
+        result = np.zeros((len(detections), len(ground_truth)), dtype=float)
+        gt_records = [self._record(mask) for mask in ground_truth]
+        for detection_index, detection in enumerate(detections):
+            detection_runs, detection_area, detection_bbox = self._record(detection)
+            dx0, dy0, dx1, dy1 = detection_bbox
+            for gt_index, (gt_runs, gt_area, (gx0, gy0, gx1, gy1)) in enumerate(gt_records):
+                if dx1 <= gx0 or gx1 <= dx0 or dy1 <= gy0 or gy1 <= dy0:
+                    continue
+                intersection = self._intersection(detection_runs, gt_runs)
+                union = detection_area if iscrowd[gt_index] else detection_area + gt_area - intersection
+                result[detection_index, gt_index] = intersection / union if union else 0.0
+        return result
+
+
+class fast_mask_iou:
+    """Temporarily replace the official evaluator's repeated RLE IoU calls."""
+
+    def __init__(self, evaluator: Any) -> None:
+        self.evaluator = evaluator
+        self.original = evaluator.mask_utils.iou
+        self.calculator = _FastMaskIoU()
+
+    def __enter__(self) -> "fast_mask_iou":
+        self.evaluator.mask_utils.iou = self.calculator.iou
+        return self
+
+    def __exit__(self, exception_type: Any, exception: Any, traceback: Any) -> None:
+        self.evaluator.mask_utils.iou = self.original
+
+
+def mask_iou(first: dict[str, Any], second: dict[str, Any]) -> float:
+    """Return pixel IoU for two COCO RLE masks."""
+    return float(_FastMaskIoU().iou([first], [second], [0])[0][0])
 
 
 def _prediction_groups(predictions: list[dict[str, Any]]) -> dict[int, list[dict[str, Any]]]:
@@ -76,19 +182,10 @@ def classify_errors(
     image_ids: list[int],
     iou_threshold: float = 0.5,
 ) -> dict[str, Any]:
-    """Classify prediction errors with a fast diagnostic overlap pass.
-
-    A prediction is a false positive when its best non-crowd ground-truth IoU
-    is below ``iou_threshold``. A matched prediction with the wrong category
-    is a classification error. Unmatched ground-truth objects are false
-    negatives. Matching uses bounding-box IoU to keep the diagnostic practical
-    on 1280x960 masks; official mask AP/AP75 and rendered images remain the
-    source of truth for segmentation quality.
-    """
-    from pycocotools import mask as mask_utils
-
+    """Classify prediction errors using deterministic mask-IoU matching."""
     ground_truth = load_official_evaluator().load_gt(ground_truth_path)
     grouped = _prediction_groups(predictions)
+    iou_calculator = _FastMaskIoU()
     selected = set(image_ids)
     summary: dict[str, Any] = {
         "iou_threshold": iou_threshold,
@@ -114,7 +211,6 @@ def classify_errors(
         # metrics still score the complete validated prediction file.
         image_predictions = sorted(grouped.get(image_id, []), key=lambda item: -item["score"])[:100]
         gt_masks = [annotation["segmentation"] for annotation in annotations]
-        gt_boxes = [mask_utils.toBbox(mask) for mask in gt_masks]
         used_gt: set[int] = set()
         image_errors = {
             "false_positives": 0,
@@ -127,38 +223,19 @@ def classify_errors(
             "matched": 0,
         }
 
+        ious = iou_calculator.iou(
+            [prediction["segmentation"] for prediction in image_predictions],
+            gt_masks,
+            [0] * len(gt_masks),
+        )
         for prediction_index, prediction in enumerate(image_predictions):
             if not gt_masks:
                 image_errors["false_positives"] += 1
                 if prediction["score"] >= 0.75:
                     image_errors["high_confidence_false_positives"] += 1
                 continue
-            prediction_mask = prediction["segmentation"]
-            px, py, pw, ph = mask_utils.toBbox(prediction_mask)
-            candidates = []
-            for index, (gx, gy, gw, gh) in enumerate(gt_boxes):
-                if px < gx + gw and gx < px + pw and py < gy + gh and gy < py + ph:
-                    candidates.append(index)
-            if not candidates:
-                image_errors["false_positives"] += 1
-                if prediction["score"] >= 0.75:
-                    image_errors["high_confidence_false_positives"] += 1
-                continue
-            # Mask IoU is expensive at 1280x960. The highest bbox-IoU
-            # candidates contain the only plausible mask matches; keep a
-            # small deterministic shortlist for this diagnostic pass. The
-            # official AP remains the source of truth for final scoring.
-            def bbox_iou(index: int) -> float:
-                gx, gy, gw, gh = gt_boxes[index]
-                ix0, iy0 = max(px, gx), max(py, gy)
-                ix1, iy1 = min(px + pw, gx + gw), min(py + ph, gy + gh)
-                intersection = max(0.0, ix1 - ix0) * max(0.0, iy1 - iy0)
-                union = pw * ph + gw * gh - intersection
-                return intersection / union if union else 0.0
-
-            candidates = [max(candidates, key=bbox_iou)]
-            best_gt = candidates[0]
-            best_iou = bbox_iou(best_gt)
+            candidates = [(float(ious[prediction_index, index]), index) for index in range(len(gt_masks)) if index not in used_gt]
+            best_iou, best_gt = max(candidates, default=(0.0, -1))
             if best_iou < iou_threshold or best_gt in used_gt:
                 image_errors["false_positives"] += 1
                 if prediction["score"] >= 0.75:
@@ -264,7 +341,7 @@ def write_report(output: Path, fold_info: dict[str, Any], scored: dict[str, Any]
         f"- Falsos positivos: {errors['false_positives']}",
         f"- Falsos negativos: {errors['false_negatives']}",
         f"- Errores de especie: {errors['classification_errors']}",
-        f"- Errores de solapamiento (diagnóstico por caja): {errors['overlap_errors']}",
+        f"- Errores de solapamiento (IoU de máscara): {errors['overlap_errors']}",
         f"- Falsos positivos con confianza ≥ 0,75: {errors['high_confidence_false_positives']}",
         f"- Falsos negativos pequeños: {errors['small_false_negatives']}",
         f"- Falsos negativos con indicios de oclusión: {errors['occluded_false_negatives']}",

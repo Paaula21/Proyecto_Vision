@@ -83,9 +83,10 @@ class FruitDataset(Dataset):
     """
     
     "Carga annotations.json, guarda los ids solicitados y comprueba las categorías"
-    def __init__(self, data_dir, image_ids):
+    def __init__(self, data_dir, image_ids, include_iscrowd=True):
         self.data_dir = Path(data_dir)
         self.image_ids = list(image_ids)
+        self.include_iscrowd = include_iscrowd
         self.coco = COCO(str(self.data_dir / "annotations.json"))
         categories = {c["id"]: c["name"] for c in self.coco.dataset["categories"]}
         if categories != CATEGORIES:
@@ -110,6 +111,8 @@ class FruitDataset(Dataset):
         image_tensor = torch.from_numpy(image_array).permute(2, 0, 1).float().div(255.0)
 
         annotations = self.coco.loadAnns(self.coco.getAnnIds(imgIds=[image_id]))
+        if not self.include_iscrowd:
+            annotations = [annotation for annotation in annotations if not annotation.get("iscrowd", 0)]
         boxes, labels, masks = [], [], []
         for annotation in annotations:
             x, y, box_width, box_height = annotation["bbox"]
