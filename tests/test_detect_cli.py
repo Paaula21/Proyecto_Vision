@@ -22,6 +22,57 @@ import main
 
 
 class DetectCommandContractTests(unittest.TestCase):
+    def test_write_predictions_moves_images_to_detector_device(self):
+        """La entrada de inferencia debe usar el mismo dispositivo que el detector."""
+        class InputTensor:
+            def __init__(self):
+                self.device = None
+
+            def to(self, device):
+                self.device = device
+                return self
+
+        class Detector:
+            def __call__(self, images):
+                self.received_device = images[0].device
+                return [{
+                    "masks": Tensor(np.array([[[[1.0]]]])),
+                    "labels": Tensor([1]),
+                    "scores": Tensor([0.9]),
+                }]
+
+        class Tensor:
+            def __init__(self, value):
+                self.value = np.asarray(value)
+
+            def detach(self):
+                return self
+
+            def cpu(self):
+                return self
+
+            def numpy(self):
+                return self.value
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            input_dir = Path(temporary_directory) / "input"
+            (input_dir / "images").mkdir(parents=True)
+            Image.new("RGB", (1, 1)).save(input_dir / "images" / "image.png")
+            (input_dir / "images.json").write_text(json.dumps({"images": [
+                {"id": 1, "file_name": "image.png", "width": 1, "height": 1},
+            ]}))
+            detector = Detector()
+
+            with patch.object(main, "image_to_tensor", return_value=InputTensor()):
+                main.write_predictions(
+                    input_dir,
+                    Path(temporary_directory) / "predictions.json",
+                    detector,
+                    device="cuda",
+                )
+
+        self.assertEqual(detector.received_device, "cuda")
+
     def test_detect_requires_local_weights_and_accepts_cpu_or_cuda(self):
         """El comando declara pesos locales obligatorios y los dispositivos oficiales."""
         help_result = subprocess.run(
@@ -96,7 +147,9 @@ class DetectCommandContractTests(unittest.TestCase):
 
             with (
                 patch.object(main, "load_detector", return_value=Detector()),
-                patch.object(main, "image_to_tensor", return_value=object()),
+                patch.object(
+                    main, "image_to_tensor", return_value=SimpleNamespace(to=lambda _device: object())
+                ),
             ):
                 main.main([
                     "detect", "--input", str(input_dir), "--output", str(output),
@@ -146,7 +199,9 @@ class DetectCommandContractTests(unittest.TestCase):
                 {"id": 1, "file_name": "image.png", "width": 1, "height": 1},
             ]}))
 
-            with patch.object(main, "image_to_tensor", return_value=object()):
+            with patch.object(
+                main, "image_to_tensor", return_value=SimpleNamespace(to=lambda _device: object())
+            ):
                 with self.assertRaisesRegex(ValueError, "category_id"):
                     main.write_predictions(input_dir, Path(temporary_directory) / "predictions.json", Detector())
 
@@ -181,7 +236,9 @@ class DetectCommandContractTests(unittest.TestCase):
                 {"id": 1, "file_name": "image.png", "width": 1, "height": 1},
             ]}))
 
-            with patch.object(main, "image_to_tensor", return_value=object()):
+            with patch.object(
+                main, "image_to_tensor", return_value=SimpleNamespace(to=lambda _device: object())
+            ):
                 with self.assertRaisesRegex(ValueError, "score"):
                     main.write_predictions(input_dir, Path(temporary_directory) / "predictions.json", Detector())
 
@@ -216,7 +273,9 @@ class DetectCommandContractTests(unittest.TestCase):
                 {"id": 1, "file_name": "image.png", "width": 2, "height": 2},
             ]}))
 
-            with patch.object(main, "image_to_tensor", return_value=object()):
+            with patch.object(
+                main, "image_to_tensor", return_value=SimpleNamespace(to=lambda _device: object())
+            ):
                 with self.assertRaisesRegex(ValueError, "segmentation size"):
                     main.write_predictions(input_dir, Path(temporary_directory) / "predictions.json", Detector())
 
@@ -252,7 +311,9 @@ class DetectCommandContractTests(unittest.TestCase):
             ]}))
             output = Path(temporary_directory) / "predictions.json"
 
-            with patch.object(main, "image_to_tensor", return_value=object()):
+            with patch.object(
+                main, "image_to_tensor", return_value=SimpleNamespace(to=lambda _device: object())
+            ):
                 main.write_predictions(input_dir, output, Detector())
 
             predictions = json.loads(output.read_text())
@@ -393,7 +454,7 @@ class DetectCommandContractTests(unittest.TestCase):
 
         load_detector.assert_called_once_with(Path("local-detector.pth"), "cuda")
         write_predictions.assert_called_once_with(
-            Path("input"), Path("predictions.json"), detector
+            Path("input"), Path("predictions.json"), detector, "cuda"
         )
 
 
