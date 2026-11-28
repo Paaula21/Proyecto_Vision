@@ -195,7 +195,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--image-limit", type=int, help="Limita imágenes de validación; el informe queda provisional")
     parser.add_argument("--train", action="store_true")
     parser.add_argument("--epochs", type=int, default=1)
-    parser.add_argument("--learning-rate", type=float, default=0.005)
+    parser.add_argument("--learning-rate", type=float, default=0.001)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--exclude-iscrowd", action="store_true")
     parser.add_argument("--device", choices=("cpu", "cuda"), default="cpu")

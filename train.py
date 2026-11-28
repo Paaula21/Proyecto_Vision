@@ -29,7 +29,11 @@ def main():
     parser.add_argument("--output", type=Path, required=True, help="Directorio nuevo para pesos y configuración")
     parser.add_argument("--device", choices=["cpu", "cuda"], default="cpu")
     parser.add_argument("--epochs", type=int, default=10)
-    parser.add_argument("--learning-rate", type=float, default=0.005)
+    parser.add_argument("--learning-rate", type=float, default=0.001)
+    parser.add_argument(
+        "--gradient-clip-norm", type=float, default=5.0,
+        help="Norma máxima para estabilizar las actualizaciones del detector",
+    )
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument(
         "--exclude-iscrowd", action="store_true",
@@ -37,8 +41,8 @@ def main():
     )
     args = parser.parse_args()
 
-    if args.epochs < 1 or args.learning_rate <= 0:
-        parser.error("--epochs y --learning-rate deben ser positivos")
+    if args.epochs < 1 or args.learning_rate <= 0 or args.gradient_clip_norm <= 0:
+        parser.error("--epochs, --learning-rate y --gradient-clip-norm deben ser positivos")
     if args.device == "cuda" and not torch.cuda.is_available():
         parser.error("Se solicitó CUDA, pero no hay una GPU CUDA disponible")
     if args.output.exists():
@@ -72,6 +76,7 @@ def main():
         "iscrowd_training": "excluded" if args.exclude_iscrowd else "included_as_positive",
         "epochs": args.epochs,
         "learning_rate": args.learning_rate,
+        "gradient_clip_norm": args.gradient_clip_norm,
         "batch_size": 1,
         "seed": args.seed,
         "device": args.device,
@@ -89,13 +94,18 @@ def main():
         for image_number, (images, targets) in enumerate(loader, start=1):
             images = [image.to(device) for image in images]
             targets = [{key: value.to(device) for key, value in target.items()} for target in targets]
+            optimizer.zero_grad(set_to_none=True)
             losses = model(images, targets)
             loss = sum(losses.values())
             if not torch.isfinite(loss):
                 raise RuntimeError(f"La pérdida no es finita: {losses}")
 
-            optimizer.zero_grad()
             loss.backward()
+            gradient_norm = torch.nn.utils.clip_grad_norm_(
+                model.parameters(), args.gradient_clip_norm, error_if_nonfinite=True
+            )
+            if not torch.isfinite(gradient_norm):
+                raise RuntimeError(f"La norma del gradiente no es finita: {gradient_norm}")
             optimizer.step()
             total_loss += loss.item()
             if image_number % 10 == 0 or image_number == len(loader):
