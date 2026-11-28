@@ -76,7 +76,7 @@ def coco_rle(mask):
     return {"size": list(mask.shape), "counts": "".join(encoded)}
 
 
-def write_predictions(input_dir, output_path, detector):
+def write_predictions(input_dir, output_path, detector, device="cpu"):
     """Ejecuta el detector para todas las imágenes del contrato oficial."""
     images = json.loads((input_dir / "images.json").read_text(encoding="utf-8"))["images"]
     try:
@@ -88,7 +88,8 @@ def write_predictions(input_dir, output_path, detector):
     predictions = []
     with context:
         for image in images:
-            outputs = detector([image_to_tensor(input_dir / "images" / image["file_name"])])[0]
+            image_tensor = image_to_tensor(input_dir / "images" / image["file_name"]).to(device)
+            outputs = detector([image_tensor])[0]
             masks = outputs["masks"].detach().cpu().numpy()[:, 0] >= 0.5
             labels = outputs["labels"].detach().cpu().numpy()
             scores = outputs["scores"].detach().cpu().numpy()
@@ -133,7 +134,12 @@ def main(argv=None):
 
             if not torch.cuda.is_available():
                 parser.error("Se solicitó CUDA, pero no hay una GPU CUDA disponible")
-        write_predictions(args.input, args.output, load_detector(args.weights, args.device))
+        write_predictions(
+            args.input,
+            args.output,
+            load_detector(args.weights, args.device),
+            args.device,
+        )
 
 
 if __name__ == "__main__":
